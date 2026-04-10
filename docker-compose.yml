@@ -1,0 +1,82 @@
+services:
+  # NGINX INGRESS CONTROLLER - BUILD AND SERVES ALL FRONTEND + API_ROUTING TO BACKEND SERVICES
+  nginx-ingress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # github creds
+        - GITHUB_USERNAME=pulkitbajaj1999
+        - GITHUB_REPO_URL=https://github.com/pulkitbajaj1999/main-proj.git
+        - GITHUB_TOKEN=${{GITHUB_TOKEN}}
+        - RAILWAY_GIT_COMMIT_SHA=${{RAILWAY_GIT_COMMIT_SHA}}
+
+        # app1 portfolio
+        - APP1_BASE_PATH=/portfolio/
+
+        # app2 docker-scram
+        - APP2_BASE_PATH=/docker-scram/
+        - APP2_API_BASE_URL=http://docker-scram:4000/api
+    container_name: nginx-ingress
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-default.conf:/etc/nginx/conf.d/default.conf:ro
+    command: ["nginx", "-g", "daemon off;"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 32M
+
+  # DOCKER-SCRAM BACKEND SERVICE
+  docker-scram:
+    context: ./docker-scram/backend
+    dockerfile: Dockerfile
+    environment:
+      - DB_NAME=docker_db
+      - DATABASE_URL=postgresql+asyncpg://${{ postgres.POSTGRES_USER }}:${{ postgres.POSTGRES_PASSWORD }}@${{ postgres.RAILWAY_PRIVATE_DOMAIN }}:${{ postgres.PORT }}/${{ DB_NAME }}
+      - ADMIN_DATABASE_URL=postgresql://${{ postgres.POSTGRES_USER }}:${{ postgres.POSTGRES_PASSWORD }}@${{ postgres.RAILWAY_PRIVATE_DOMAIN }}:${{ postgres.PORT }}/${{ postgres.POSTGRES_DB }}
+      - DOCKER_HUB_TAGS_URL=https://hub.docker.com/v2/namespaces/{namespace}/repositories/{repository}/tags
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "4000"]
+    ports:
+      - 4000:4000
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 32M
+  
+  # COMMON POSTGRES DATABASE
+  postgres:
+    image: postgres:18.3-trixie
+    container_name: system-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/18/data
+    networks:
+      - default-net
+    ports:
+      - "5432:5432"   # Exposes the default PostgreSQL port
+    volumes:
+      - postgres_data:/var/lib/postgresql  # Attaches a volume for persistent storage
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+    

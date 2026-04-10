@@ -1,0 +1,8 @@
+[submodule "portfolio"]
+	path = portfolio
+	url = https://github.com/pulkitbajaj1999/portfolio.git
+	branch = main
+[submodule "docker-scram"]
+	path = docker-scram
+	url = https://github.com/pulkitbajaj1999/docker-scram.git
+	branch = main
