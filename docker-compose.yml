@@ -1,5 +1,7 @@
 services:
+  # =============================
   # NGINX INGRESS CONTROLLER - BUILD AND SERVES ALL FRONTEND + API_ROUTING TO BACKEND SERVICES
+  # =============================
   nginx-ingress:
     build:
       context: .
@@ -16,7 +18,11 @@ services:
 
         # app2 docker-scram
         - APP2_BASE_PATH=/docker-scram/
-        - APP2_API_BASE_URL=http://docker-scram:4000/api
+        - APP2_API_BASE_URL=http://docker-scram:8002/api
+
+        # app3 chess
+        - APP3_BASE_PATH=/chess/
+        - APP3_API_BASE_URL=http://chess:8003/api
     container_name: nginx-ingress
     ports:
       - "80:80"
@@ -32,7 +38,9 @@ services:
         reservations:
           memory: 32M
 
-  # DOCKER-SCRAM BACKEND SERVICE
+  # ==================================
+  # APP2: DOCKER-SCRAM - BACKEND SERVICE
+  # ==================================
   docker-scram:
     context: ./docker-scram/backend
     dockerfile: Dockerfile
@@ -41,9 +49,27 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${{ postgres.POSTGRES_USER }}:${{ postgres.POSTGRES_PASSWORD }}@${{ postgres.RAILWAY_PRIVATE_DOMAIN }}:${{ postgres.PORT }}/${{ DB_NAME }}
       - ADMIN_DATABASE_URL=postgresql://${{ postgres.POSTGRES_USER }}:${{ postgres.POSTGRES_PASSWORD }}@${{ postgres.RAILWAY_PRIVATE_DOMAIN }}:${{ postgres.PORT }}/${{ postgres.POSTGRES_DB }}
       - DOCKER_HUB_TAGS_URL=https://hub.docker.com/v2/namespaces/{namespace}/repositories/{repository}/tags
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "4000"]
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
     ports:
-      - 4000:4000
+      - 8002:8002
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 32M
+
+  # ============================
+  # APP3: CHESS - BACKEND SERVICE
+  # ==========================
+  chess:
+    context: ./chess/backend
+    dockerfile: Dockerfile
+    environment:
+      - PORT=8003
+    ports:
+      - 8003:8003
     deploy:
       resources:
         limits:
@@ -52,7 +78,9 @@ services:
         reservations:
           memory: 32M
   
+  # ===========================
   # COMMON POSTGRES DATABASE
+  # ============================
   postgres:
     image: postgres:18.3-trixie
     container_name: system-postgres
