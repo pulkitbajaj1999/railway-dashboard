@@ -18,11 +18,15 @@ services:
 
         # app2 docker-scram
         - APP2_BASE_PATH=/docker-scram/
-        - APP2_API_BASE_URL=http://docker-scram:8002/api
+        - APP2_VITE_API_BASE_URL=http://docker-scram:8002/api
 
         # app3 chess
         - APP3_BASE_PATH=/chess/
-        - APP3_API_BASE_URL=http://chess:8003/api
+        - APP3_VITE_API_BASE_URL=http://chess:8003/api
+
+        # app4 musicwire
+        - APP4_BASE_PATH=/musicwire/
+        - APP4_VITE_API_BASE_URL=http://musicwire:8004/api
     container_name: nginx-ingress
     ports:
       - "80:80"
@@ -70,6 +74,32 @@ services:
       - PORT=8003
     ports:
       - 8003:8003
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 32M
+
+  # ==================================
+  # APP4: MUSICWIRE - backend service
+  # ==================================
+  musicwire:
+    context: ./musicwire/backend
+    dockerfile: Dockerfile
+    environment:
+      - B2_APPLICATION_KEY=
+      - B2_BUCKET_NAME=musicwire
+      - B2_ENDPOINT_URL=s3.us-west-004.backblazeb2.com
+      - B2_KEY_ID=
+      - ENABLE_B2_STORAGE=true
+      - MONGODB_URI=mongodb+srv://<user>:<password>@cluster0.qgwii.mongodb.net/musicwire?retryWrites=true&w=majority
+      - MULTER_MAX_FILE_SIZE=5
+      - ADMIN_PASS=
+    command: ["bun", "server.js"]
+    ports:
+      - 8004:8004
     deploy:
       resources:
         limits:

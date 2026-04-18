@@ -89,6 +89,29 @@ ENV VITE_API_BASE_URL=$APP3_VITE_API_BASE_URL
 RUN bun run build
 
 # ===============================================
+# STAGE: 4 - BUILD APP : MUSICWIRE
+# ===============================================
+FROM oven/bun:1.3-slim AS builder4
+WORKDIR /apps/musicwire
+
+# Copy the package manager files and install dependencies
+COPY --from=prebuild /repo/musicwire/frontend/package.json /repo/musicwire/frontend/bun.lock* ./
+RUN bun install
+
+# copy rest of the files for the build creation
+COPY --from=prebuild /repo/musicwire/frontend .
+
+# Declare the specific ARG for this stage
+ARG APP4_BASE_PATH
+ARG APP4_VITE_API_BASE_URL
+
+ENV BASE_PATH=$APP4_BASE_PATH
+ENV VITE_API_BASE_URL=$APP4_VITE_API_BASE_URL
+
+# run the build
+RUN bun run build
+
+# ===============================================
 # STAGE: runtime - NGINX RUNTIME (Final Image)
 # ===============================================
 FROM nginx:alpine AS runtime
@@ -105,6 +128,9 @@ COPY --from=builder2 /apps/docker-scram/dist ./docker-scram
 
 # COPY Build-3
 COPY --from=builder3 /apps/chess/dist ./chess
+
+# COPY Build-3
+COPY --from=builder4 /apps/musicwire/dist ./musicwire
 
 # Copy your custom nginx config from the main repo
 COPY nginx-default.conf /etc/nginx/conf.d/default.conf

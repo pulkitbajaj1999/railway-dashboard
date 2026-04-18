@@ -10,3 +10,7 @@
 	path = chess
 	url = https://github.com/pulkitbajaj1999/chess.git
 	branch = main
+[submodule "musicwire"]
+	path = musicwire
+	url = https://github.com/pulkitbajaj1999/musicwire.git
+	branch = main
